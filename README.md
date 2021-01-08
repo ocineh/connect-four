@@ -13,7 +13,7 @@ cargo run
 ```
 ## Roadmap
 *[X] Create a game board and be able to display it in the terminal.
-*[ ] Set up a more beautiful board display with color on the terminal.
+*[X] Set up a more beautiful board display with color on the terminal.
 *[ ] Check if the tray is full.
 *[ ] Check if there is a winner vertically and horizontally.
 *[ ] To be able to play a move by entering only the column.
