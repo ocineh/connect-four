@@ -12,7 +12,8 @@ You can either compile it (see above) with cargo or directly launch it with carg
 cargo run
 ```
 ## Roadmap
-*[ ] Create a game board and be able to display it in the terminal
+*[X] Create a game board and be able to display it in the terminal.
+*[ ] Set up a more beautiful board display with color on the terminal.
 *[ ] Check if the tray is full.
 *[ ] Check if there is a winner vertically and horizontally.
 *[ ] To be able to play a move by entering only the column.
