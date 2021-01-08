@@ -1,12 +1,16 @@
-use std::io;
 use crossterm::{
     style::{ Color, SetBackgroundColor, ResetColor, SetForegroundColor }
 };
 
 fn main() {
     println!("Wolecome to the connect four game.");
-    let board = Board::new();
+    let mut board = Board::new();
+    board.body[0][0] = 'R';
+    board.body[0][1] = 'R';
+    board.body[0][2] = 'R';
+    board.body[0][3] = 'R';
     board.display();
+    println!("check winner = {:?}", board.check_winner());
 }
 
 struct Board {
@@ -44,8 +48,8 @@ impl Board {
             for cell in row {
                 match cell {
                     ' ' => print!("{}   {}", SetBackgroundColor(Color::White), ResetColor),
-                    'R' => print!("{}   {}", SetBackgroundColor(Color::Rgb {  r: 255, g: 255, b: 50 }), ResetColor),
-                    'Y' => print!("{}   {}", SetBackgroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
+                    'Y' => print!("{}   {}", SetBackgroundColor(Color::Rgb {  r: 255, g: 255, b: 50 }), ResetColor),
+                    'R' => print!("{}   {}", SetBackgroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
                     _ => print!("!!!"),
                 };
                 print!("{} {}", SetBackgroundColor(separation_color), ResetColor);
@@ -60,5 +64,27 @@ impl Board {
             }
         }
         true
+    }
+    fn check_winner(&self) -> (bool, char) {
+        // verifier pour chaque joueur
+        for player_token in ['R', 'Y'].iter() {
+            // verifie horizontalement
+            for row in self.body.iter() {
+                let mut count: u8 = 0;
+                for cell in row {
+                    count = if cell == player_token { count + 1 } else { 0 };
+                    if count >= 4 { return (true, player_token.to_owned()); }
+                }
+            }
+            // verifie verticalement
+            for i in 0..self.body[0].len() {
+                let mut count: u8 = 0;
+                for j in 0..self.body.len() {
+                    count = if self.body[j][i] == *player_token { count + 1 } else { 0 };
+                    if count >= 4{ return (true, player_token.to_owned()) }
+                }
+            }
+        }
+        (false, ' ')
     }
 }
