@@ -4,11 +4,16 @@ use crossterm::{
     cursor
 };
 use std::io;
+use rand::{seq::SliceRandom, thread_rng, Rng};
 
 fn main() {
     println!("Welcome to the connect four game.");
     let mut board = Board::new();
-    board.game();
+    match rand_game() {
+        Token::Red => println!("Red"),
+        Token::Yellow => println!("Yellow"),
+        Token::Empty => println!("Empty"),
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -155,4 +160,20 @@ impl Board {
             Token::Empty => println!("The game ended in a draw."),
         };
     }
+}
+
+fn rand_game() -> Token {
+    let mut board = Board::new();
+    // the pos_list vector contains the column numbers which are each present the number of times we can enter a token in said column
+    let mut pos_list: Vec<usize> = Vec::from([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5]);
+    // randomly choose the first player
+    let mut current_player = [Token::Red, Token::Yellow].choose(&mut thread_rng()).unwrap().to_owned();
+
+    while !pos_list.is_empty() && !board.is_full() && !(board.check_winner() != Token::Empty) {
+        // Randomly choose an element from pos_list and remove it while using it as a parameter of player_stroke
+        board.player_stroke(current_player, pos_list.remove(thread_rng().gen_range(0..pos_list.len())));
+        current_player = if current_player == Token::Red { Token::Yellow } else { Token::Red };
+    }
+    // returns the winner of the game
+    board.check_winner()
 }
