@@ -14,9 +14,9 @@ cargo run
 ## Roadmap
 *[X] Create a game board and be able to display it in the terminal.
 *[X] Set up a more beautiful board display with color on the terminal.
-*[ ] Check if the tray is full.
-*[ ] Check if there is a winner vertically and horizontally.
-*[ ] To be able to play a move by entering only the column.
+*[X] Check if the tray is full.
+*[X] Check if there is a winner vertically and horizontally.
+*[X] To be able to play a move by entering only the column.
 *[ ] Being able to play a game with someone else.
 *[ ] To be able to play a game against the computer (but just random hits).
 *[ ] Check if there is a winner diagonally.
