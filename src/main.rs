@@ -1,8 +1,7 @@
 use std::io;
 use crossterm::{
-    style::{ Color, SetBackgroundColor, ResetColor }
+    style::{ Color, SetBackgroundColor, ResetColor, SetForegroundColor }
 };
-use crossterm::style::SetForegroundColor;
 
 fn main() {
     println!("Wolecome to the connect four game.");
@@ -53,5 +52,13 @@ impl Board {
             }
             println!("\n\t{}                             {}", SetBackgroundColor(separation_color), ResetColor);
         }
+    }
+    fn is_full(&self) -> bool {
+        for row in self.body.iter() {
+            for cell in row {
+                if cell != &' ' { return false; }
+            }
+        }
+        true
     }
 }
