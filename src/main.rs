@@ -1,24 +1,20 @@
 use crossterm::{
-    style::{ Color, SetBackgroundColor, ResetColor, SetForegroundColor }
+    style::{Color, SetBackgroundColor, ResetColor, SetForegroundColor},
+    terminal::{Clear, ClearType},
+    cursor
 };
+use std::io;
 
 fn main() {
-    println!("Wolecome to the connect four game.");
+    println!("Welcome to the connect four game.");
     let mut board = Board::new();
-    board.player_stroke(Token::Yellow, 0);
-    board.player_stroke(Token::Red, 2);
-    board.player_stroke(Token::Yellow, 2);
-    board.player_stroke(Token::Red, 2);
-    board.display();
-    println!("check winner = {}", board.check_winner().0);
+    board.game();
 }
 
 #[derive(Clone, Copy, PartialEq)]
 enum Token { Red, Yellow, Empty }
 
-struct Board {
-    body: [[Token; 7]; 6]
-}
+struct Board { body: [[Token; 7]; 6] }
 
 impl Board {
     fn new() -> Board {
@@ -39,7 +35,7 @@ impl Board {
 
         // First row to display column numbers
         println!("\n\t{}                             {}", SetBackgroundColor(separation_color), ResetColor);
-        print!("colomn :{} {}", SetBackgroundColor(separation_color), ResetColor);
+        print!("column :{} {}", SetBackgroundColor(separation_color), ResetColor);
         for i in 1..=7 {
             print!("{}{} {} {} {}", SetBackgroundColor(Color::DarkCyan), SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 0 }), i, SetBackgroundColor(separation_color), ResetColor);
         }
@@ -51,9 +47,8 @@ impl Board {
             for cell in row {
                 match cell {
                     Token::Empty => print!("{}   {}", SetBackgroundColor(Color::White), ResetColor),
-                    Token::Yellow => print!("{}   {}", SetBackgroundColor(Color::Rgb {  r: 255, g: 255, b: 50 }), ResetColor),
+                    Token::Yellow => print!("{}   {}", SetBackgroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
                     Token::Red => print!("{}   {}", SetBackgroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
-                    _ => print!("!!!"),
                 };
                 print!("{} {}", SetBackgroundColor(separation_color), ResetColor);
             }
@@ -63,12 +58,12 @@ impl Board {
     fn is_full(&self) -> bool {
         for row in self.body.iter() {
             for cell in row {
-                if cell != &Token::Empty { return false; }
+                if cell == &Token::Empty { return false; }
             }
         }
         true
     }
-    fn check_winner(&self) -> (bool, Token) {
+    fn check_winner(&self) -> Token {
         // Verification for each player
         for player_token in [Token::Red, Token::Yellow].iter() {
             // Check horizontally
@@ -76,7 +71,7 @@ impl Board {
                 let mut count: u8 = 0;
                 for cell in row {
                     count = if cell == player_token { count + 1 } else { 0 };
-                    if count >= 4 { return (true, player_token.to_owned()); }
+                    if count >= 4 { return player_token.to_owned() }
                 }
             }
             // Check vertically
@@ -84,11 +79,11 @@ impl Board {
                 let mut count: u8 = 0;
                 for j in 0..self.body.len() {
                     count = if self.body[j][i] == *player_token { count + 1 } else { 0 };
-                    if count >= 4{ return (true, player_token.to_owned()) }
+                    if count >= 4{ return player_token.to_owned() }
                 }
             }
         }
-        (false, Token::Empty)
+        Token::Empty
     }
     fn player_stroke(&mut self, token: Token, col: usize) -> Option<bool> {
         // check if the column number is valid
@@ -103,5 +98,61 @@ impl Board {
             }
         }
         None
+    }
+    fn game(&mut self) {
+        let mut current_player = Token::Red;
+        while !self.is_full() && !(self.check_winner() != Token::Empty) {
+            println!("{}{}Current game.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
+            self.display();
+
+            match current_player {
+                Token::Red => eprint!("The player with the {}red token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
+                Token::Yellow => eprint!("The player with the {}yellow token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
+                Token::Empty => {}
+            };
+
+            let mut col = String::new();
+            // Retrieves the column number entered by the user
+            io::stdin()
+                .read_line(&mut col)
+                .expect("Error reading user input.");
+
+            // converted col from String to usize by handling errors related to input of something other than a number
+            let col: usize = match col.trim().parse() {
+                Ok(num) => num,
+                Err(_) => {
+                    println!("Please enter a column number between 1 and 7.");
+                    continue;
+                }
+            };
+
+            // try to place the token in the column selected by the user and deal with the potential problem
+            match self.player_stroke(current_player, col - 1) {
+                None => {
+                    println!("Please enter a column number between 1 and 7.");
+                    continue;
+                }
+                Some(t) => {
+                    match t {
+                        false => {
+                            println!("The column is full.");
+                            continue;
+                        }
+                        true => {}
+                    }
+                }
+            }
+
+            current_player = if current_player == Token::Red { Token::Yellow } else { Token::Red };
+        }
+
+        println!("{}{}Party to finish.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
+        self.display();
+
+        match self.check_winner() {
+            Token::Yellow => println!("Victory for the player with the {}yellow tokens !{}", SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
+            Token::Red => println!("Victory for the player with the {}red tokens !{}", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
+            Token::Empty => println!("The game ended in a draw."),
+        };
     }
 }

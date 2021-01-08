@@ -17,7 +17,7 @@ cargo run
 *[X] Check if the tray is full.
 *[X] Check if there is a winner vertically and horizontally.
 *[X] To be able to play a move by entering only the column.
-*[ ] Being able to play a game with someone else.
+*[X] Being able to play a game with someone else.
 *[ ] To be able to play a game against the computer (but just random hits).
 *[ ] Check if there is a winner diagonally.
 ## License
