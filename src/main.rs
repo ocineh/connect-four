@@ -6,9 +6,7 @@ use crossterm::{
 use std::io;
 
 fn main() {
-    println!("Welcome to the connect four game.");
-    let mut board = Board::new();
-    board.game();
+    Board::game()
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -82,6 +80,47 @@ impl Board {
                     if count >= 4{ return player_token.to_owned() }
                 }
             }
+            // check the diagonal that starts on the left and ends on the right
+            let mut pos_row: Vec<usize> = Vec::from([1,2,3,4,5]);
+            while pos_row.len() > 3 {
+                let mut count = 0;
+                for (mut col, row) in pos_row.iter().enumerate() {
+                    count = if self.body[*row][col] == *player_token { count + 1 } else { 0 };
+                    if count >= 4 { return player_token.to_owned() }
+                }
+                pos_row.remove(0);
+            }
+            let mut pos_col: Vec<usize> = Vec::from([0,1,2,3,4,5,6]);
+            while pos_col.len() > 3 {
+                let mut count = 0;
+                for (mut row, col) in pos_col.iter().enumerate() {
+                    if row >= 6 { row -= 1; };
+                    count = if self.body[row][*col] == *player_token { count + 1 } else { 0 };
+                    if count >= 4 { return player_token.to_owned() }
+                }
+                pos_col.remove(0);
+            }
+            // check the diagonal which starts on the right and ends on the left
+            pos_col = Vec::from([5,4,3,2,1,0]);
+            while pos_col.len() > 3 {
+                let mut count = 0;
+                for (row, col) in pos_col.iter().enumerate() {
+                    count = if self.body[row][*col] == *player_token { count + 1 } else { 0 };
+                    if count >= 4 { return player_token.to_owned() }
+                }
+                pos_col.remove(0);
+            }
+            pos_col = Vec::from([6,5,4,3,2,1]);
+            let mut tmp = 0;
+            while pos_col.len() > 3 {
+                let mut count = 0;
+                for (row, col) in pos_col.iter().enumerate() {
+                    count = if self.body[row+tmp][*col] == *player_token { count + 1 } else { 0 };
+                    if count >= 4 { return player_token.to_owned() }
+                }
+                pos_col.pop();
+                tmp += 1;
+            }
         }
         Token::Empty
     }
@@ -99,11 +138,13 @@ impl Board {
         }
         None
     }
-    fn game(&mut self) {
+    fn game() {
+        let mut board = Board::new();
         let mut current_player = Token::Red;
-        while !self.is_full() && !(self.check_winner() != Token::Empty) {
+
+        while !board.is_full() && !(board.check_winner() != Token::Empty) {
             println!("{}{}Current game.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
-            self.display();
+            board.display();
 
             match current_player {
                 Token::Red => eprint!("The player with the {}red token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
@@ -127,7 +168,7 @@ impl Board {
             };
 
             // try to place the token in the column selected by the user and deal with the potential problem
-            match self.player_stroke(current_player, col - 1) {
+            match board.player_stroke(current_player, col - 1) {
                 None => {
                     println!("Please enter a column number between 1 and 7.");
                     continue;
@@ -147,9 +188,9 @@ impl Board {
         }
 
         println!("{}{}Party to finish.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
-        self.display();
+        board.display();
 
-        match self.check_winner() {
+        match board.check_winner() {
             Token::Yellow => println!("Victory for the player with the {}yellow tokens !{}", SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
             Token::Red => println!("Victory for the player with the {}red tokens !{}", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
             Token::Empty => println!("The game ended in a draw."),
