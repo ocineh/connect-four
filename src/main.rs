@@ -3,11 +3,11 @@ use crossterm::{
     terminal::{Clear, ClearType},
     cursor
 };
-use std::io;
 use rand::{seq::SliceRandom, thread_rng, Rng};
+use std::{thread, time::Instant};
 
 fn main() {
-    Board::game()
+    launch_games_thread(10, 100_000, true);
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -139,72 +139,14 @@ impl Board {
         }
         None
     }
-    fn game() {
-        let mut board = Board::new();
-        let mut current_player = Token::Red;
-
-        while !board.is_full() && !(board.check_winner() != Token::Empty) {
-            println!("{}{}Current game.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
-            board.display();
-
-            match current_player {
-                Token::Red => eprint!("The player with the {}red token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
-                Token::Yellow => eprint!("The player with the {}yellow token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
-                Token::Empty => {}
-            };
-
-            let mut col = String::new();
-            // Retrieves the column number entered by the user
-            io::stdin()
-                .read_line(&mut col)
-                .expect("Error reading user input.");
-
-            // converted col from String to usize by handling errors related to input of something other than a number
-            let col: usize = match col.trim().parse() {
-                Ok(num) => num,
-                Err(_) => {
-                    println!("Please enter a column number between 1 and 7.");
-                    continue;
-                }
-            };
-
-            // try to place the token in the column selected by the user and deal with the potential problem
-            match board.player_stroke(current_player, col - 1) {
-                None => {
-                    println!("Please enter a column number between 1 and 7.");
-                    continue;
-                }
-                Some(t) => {
-                    match t {
-                        false => {
-                            println!("The column is full.");
-                            continue;
-                        }
-                        true => {}
-                    }
-                }
-            }
-
-            current_player = if current_player == Token::Red { Token::Yellow } else { Token::Red };
-        }
-
-        println!("{}{}Party to finish.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
-        board.display();
-
-        match board.check_winner() {
-            Token::Yellow => println!("Victory for the player with the {}yellow tokens !{}", SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
-            Token::Red => println!("Victory for the player with the {}red tokens !{}", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
-            Token::Empty => println!("The game ended in a draw."),
-        };
-    }
 }
-
-fn rand_game() -> Token {
+// start a random game
+fn rand_game(rand_first_player: bool) -> Token {
     let mut board = Board::new();
     // the pos_list vector contains the column numbers which are each present the number of times we can enter a token in said column
     let mut pos_list: Vec<usize> = Vec::from([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5]);
-    // randomly choose the first player
-    let mut current_player = [Token::Red, Token::Yellow].choose(&mut thread_rng()).unwrap().to_owned();
+    // randomly choose the first player or not
+    let mut current_player = if rand_first_player { [Token::Red, Token::Yellow].choose(&mut thread_rng()).unwrap().to_owned() } else { Token::Red };
 
     while !pos_list.is_empty() && !board.is_full() && !(board.check_winner() != Token::Empty) {
         // Randomly choose an element from pos_list and remove it while using it as a parameter of player_stroke
@@ -213,4 +155,41 @@ fn rand_game() -> Token {
     }
     // returns the winner of the game
     board.check_winner()
+}
+// Start a number of random games and record the number of wins for each in a table
+fn launch_rounds(number_rounds: u64, rand_first_player: bool) -> [(Token, u64); 3] {
+    let mut res: [(Token, u64); 3] = [(Token::Red, 0), (Token::Yellow, 0), (Token::Empty, 0)];
+    for _i in 0..number_rounds {
+        match rand_game(rand_first_player) {
+            Token::Red => res[0].1 += 1,
+            Token::Yellow => res[1].1 += 1,
+            Token::Empty => res[2].1 += 1,
+        };
+    }
+    res
+}
+// launch threads of the launch_rounds function then get their result and put them in a single array
+fn launch_games_thread(number_thread: u32, number_rounds: u64, rand_first_player: bool) -> [(Token, u64); 3] {
+    let total_rounds = number_rounds * number_thread as u64;
+    let mut res: [(Token, u64); 3] = [(Token::Red, 0), (Token::Yellow, 0), (Token::Empty, 0)];
+
+    let now = Instant::now();
+
+    let mut children = vec![];
+    for _i in 0..number_thread {
+        children.push(thread::spawn(move || launch_rounds(number_rounds, rand_first_player)));
+    }
+    for child in children {
+        let tmp = child.join().unwrap();
+        res[0].1 += tmp[0].1;
+        res[1].1 += tmp[1].1;
+        res[2].1 += tmp[2].1;
+    }
+    let exec_time = now.elapsed().as_millis();
+    println!("finished after {} milliseconds or {} seconds or {} minutes.", exec_time, exec_time/1000, exec_time/1000/60);
+    println!("\nresult of {} game : ", total_rounds);
+    println!("\t{:.3}% victory for the red token.", (res[0].1 as f64)*100.0/(total_rounds as f64));
+    println!("\t{:.3}% victory for the yellow token.", (res[1].1 as f64)*100.0/(total_rounds as f64));
+    println!("\t{:.3}% draw.", (res[2].1 as f64)*100.0/(total_rounds as f64));
+    res
 }
