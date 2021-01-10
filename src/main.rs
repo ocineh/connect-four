@@ -4,9 +4,10 @@ use crossterm::{
     cursor
 };
 use std::io;
+use rand::{thread_rng, Rng};
 
 fn main() {
-    Board::game()
+    Board::game_rand();
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -84,7 +85,7 @@ impl Board {
             let mut pos_row: Vec<usize> = Vec::from([1,2,3,4,5]);
             while pos_row.len() > 3 {
                 let mut count = 0;
-                for (mut col, row) in pos_row.iter().enumerate() {
+                for (col, row) in pos_row.iter().enumerate() {
                     count = if self.body[*row][col] == *player_token { count + 1 } else { 0 };
                     if count >= 4 { return player_token.to_owned() }
                 }
@@ -185,6 +186,59 @@ impl Board {
             }
 
             current_player = if current_player == Token::Red { Token::Yellow } else { Token::Red };
+        }
+
+        println!("{}{}Party to finish.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
+        board.display();
+
+        match board.check_winner() {
+            Token::Yellow => println!("Victory for the player with the {}yellow tokens !{}", SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
+            Token::Red => println!("Victory for the player with the {}red tokens !{}", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
+            Token::Empty => println!("The game ended in a draw."),
+        };
+    }
+    fn game_rand() {
+        let mut board = Board::new();
+        let mut pos_list: Vec<usize> = Vec::from([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5]);
+
+        while !board.is_full() && !(board.check_winner() != Token::Empty) {
+            println!("{}{}Current game.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
+            board.display();
+
+            eprint!("The player with the {}red token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor);
+            let mut col = String::new();
+            // Retrieves the column number entered by the user
+            io::stdin()
+                .read_line(&mut col)
+                .expect("Error reading user input.");
+            // converted col from String to usize by handling errors related to input of something other than a number
+            let col: usize = match col.trim().parse() {
+                Ok(num) => num,
+                Err(_) => {
+                    println!("Please enter a column number between 1 and 7.");
+                    continue;
+                }
+            };
+
+            // try to place the token in the column selected by the user and deal with the potential problem
+            match board.player_stroke(Token::Red, col - 1) {
+                None => {
+                    println!("Please enter a column number between 1 and 7.");
+                    continue;
+                }
+                Some(t) => {
+                    match t {
+                        false => {
+                            println!("The column is full.");
+                            continue;
+                        }
+                        true => {
+                            pos_list.remove(pos_list.iter().enumerate().find(|&r| (r.1) == &(col-1)).unwrap().0);
+                        }
+                    }
+                }
+            }
+            board.player_stroke(Token::Yellow, pos_list.remove(thread_rng().gen_range(0..pos_list.len())));
         }
 
         println!("{}{}Party to finish.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));

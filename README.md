@@ -18,7 +18,7 @@ cargo run
 - [X] Check if there is a winner vertically and horizontally.
 - [X] To be able to play a move by entering only the column.
 - [X] Being able to play a game with someone else.
-- [ ] To be able to play a game against the computer (but just random hits).
+- [X] To be able to play a game against the computer (but just random hits).
 - [X] Check if there is a winner diagonally.
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
