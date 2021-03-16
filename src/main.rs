@@ -1,10 +1,6 @@
-use crossterm::{
-    style::{Color, SetBackgroundColor, ResetColor, SetForegroundColor},
-    terminal::{Clear, ClearType},
-    cursor
-};
 use rand::{seq::SliceRandom, thread_rng, Rng};
 use std::{thread, time::Instant};
+use std::sync::mpsc::Sender;
 
 fn main() {
     launch_games_thread(10, 100_000, true);
@@ -27,31 +23,6 @@ impl Board {
                 [f, f, f, f, f, f, f],
                 [f, f, f, f, f, f, f],
             ],
-        }
-    }
-    fn display(&self) {
-        let separation_color = Color::Rgb { r: 0, g: 100, b: 255 };
-
-        // First row to display column numbers
-        println!("\n\t{}                             {}", SetBackgroundColor(separation_color), ResetColor);
-        print!("column :{} {}", SetBackgroundColor(separation_color), ResetColor);
-        for i in 1..=7 {
-            print!("{}{} {} {} {}", SetBackgroundColor(Color::DarkCyan), SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 0 }), i, SetBackgroundColor(separation_color), ResetColor);
-        }
-        println!("\n\t{}                             {}", SetBackgroundColor(separation_color), ResetColor);
-
-        // Displays the body of the board with different background color
-        for row in self.body.iter(){
-            print!("\t{} {}", SetBackgroundColor(separation_color), ResetColor);
-            for cell in row {
-                match cell {
-                    Token::Empty => print!("{}   {}", SetBackgroundColor(Color::White), ResetColor),
-                    Token::Yellow => print!("{}   {}", SetBackgroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
-                    Token::Red => print!("{}   {}", SetBackgroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
-                };
-                print!("{} {}", SetBackgroundColor(separation_color), ResetColor);
-            }
-            println!("\n\t{}                             {}", SetBackgroundColor(separation_color), ResetColor);
         }
     }
     fn is_full(&self) -> bool {
@@ -85,7 +56,7 @@ impl Board {
             let mut pos_row: Vec<usize> = Vec::from([1,2,3,4,5]);
             while pos_row.len() > 3 {
                 let mut count = 0;
-                for (mut col, row) in pos_row.iter().enumerate() {
+                for (col, row) in pos_row.iter().enumerate() {
                     count = if self.body[*row][col] == *player_token { count + 1 } else { 0 };
                     if count >= 4 { return player_token.to_owned() }
                 }
@@ -157,7 +128,7 @@ fn rand_game(rand_first_player: bool) -> Token {
     board.check_winner()
 }
 // Start a number of random games and record the number of wins for each in a table
-fn launch_rounds(number_rounds: u64, rand_first_player: bool) -> [(Token, u64); 3] {
+fn launch_rounds(number_rounds: u64, tx: Sender<[(Token, u64); 3]>, rand_first_player: bool) {
     let mut res: [(Token, u64); 3] = [(Token::Red, 0), (Token::Yellow, 0), (Token::Empty, 0)];
     for _i in 0..number_rounds {
         match rand_game(rand_first_player) {
@@ -166,7 +137,7 @@ fn launch_rounds(number_rounds: u64, rand_first_player: bool) -> [(Token, u64); 
             Token::Empty => res[2].1 += 1,
         };
     }
-    res
+    tx.send(res);
 }
 // launch threads of the launch_rounds function then get their result and put them in a single array
 fn launch_games_thread(number_thread: u32, number_rounds: u64, rand_first_player: bool) -> [(Token, u64); 3] {
@@ -176,17 +147,19 @@ fn launch_games_thread(number_thread: u32, number_rounds: u64, rand_first_player
     let now = Instant::now();
 
     let mut children = vec![];
+    let (tx, rx) = std::sync::mpsc::channel();
     for _i in 0..number_thread {
-        children.push(thread::spawn(move || launch_rounds(number_rounds, rand_first_player)));
+        let tx_copy = std::sync::mpsc::Sender::clone(&tx);
+        children.push(thread::spawn(move || launch_rounds(number_rounds, tx_copy, rand_first_player)));
     }
-    for child in children {
-        let tmp = child.join().unwrap();
+    std::mem::drop(tx);
+    for tmp in rx{
         res[0].1 += tmp[0].1;
         res[1].1 += tmp[1].1;
         res[2].1 += tmp[2].1;
     }
     let exec_time = now.elapsed().as_millis();
-    println!("finished after {} milliseconds or {} seconds or {} minutes.", exec_time, exec_time/1000, exec_time/1000/60);
+    println!("finished after {} milliseconds or {:.2} seconds or {:.2} minutes.", exec_time, exec_time as f64/1000.0, exec_time as f64/1000.0/60.0);
     println!("\nresult of {} game : ", total_rounds);
     println!("\t{:.3}% victory for the red token.", (res[0].1 as f64)*100.0/(total_rounds as f64));
     println!("\t{:.3}% victory for the yellow token.", (res[1].1 as f64)*100.0/(total_rounds as f64));
