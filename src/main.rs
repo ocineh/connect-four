@@ -13,21 +13,11 @@ fn main() {
 #[derive(Clone, Copy, PartialEq)]
 enum Token { Red, Yellow, Empty }
 
-struct Board { body: [[Token; 7]; 6] }
+struct Board([[Token; 7]; 6]);
 
 impl Board {
     fn new() -> Board {
-        let f = Token::Empty;
-        Board {
-            body: [
-                [f, f, f, f, f, f, f],
-                [f, f, f, f, f, f, f],
-                [f, f, f, f, f, f, f],
-                [f, f, f, f, f, f, f],
-                [f, f, f, f, f, f, f],
-                [f, f, f, f, f, f, f],
-            ],
-        }
+        Board([[Token::Empty; 7]; 6])
     }
     fn display(&self) {
         let separation_color = Color::Rgb { r: 0, g: 100, b: 255 };
@@ -41,7 +31,7 @@ impl Board {
         println!("\n\t{}                             {}", SetBackgroundColor(separation_color), ResetColor);
 
         // Displays the body of the board with different background color
-        for row in self.body.iter(){
+        for row in self.0.iter(){
             print!("\t{} {}", SetBackgroundColor(separation_color), ResetColor);
             for cell in row {
                 match cell {
@@ -55,7 +45,7 @@ impl Board {
         }
     }
     fn is_full(&self) -> bool {
-        for row in self.body.iter() {
+        for row in self.0.iter() {
             for cell in row {
                 if cell == &Token::Empty { return false; }
             }
@@ -66,7 +56,7 @@ impl Board {
         // Verification for each player
         for player_token in [Token::Red, Token::Yellow].iter() {
             // Check horizontally
-            for row in self.body.iter() {
+            for row in self.0.iter() {
                 let mut count: u8 = 0;
                 for cell in row {
                     count = if cell == player_token { count + 1 } else { 0 };
@@ -74,10 +64,10 @@ impl Board {
                 }
             }
             // Check vertically
-            for i in 0..self.body[0].len() {
+            for i in 0..self.0[0].len() {
                 let mut count: u8 = 0;
-                for j in 0..self.body.len() {
-                    count = if self.body[j][i] == *player_token { count + 1 } else { 0 };
+                for j in 0..self.0.len() {
+                    count = if self.0[j][i] == *player_token { count + 1 } else { 0 };
                     if count >= 4{ return player_token.to_owned() }
                 }
             }
@@ -86,7 +76,7 @@ impl Board {
             while pos_row.len() > 3 {
                 let mut count = 0;
                 for (col, row) in pos_row.iter().enumerate() {
-                    count = if self.body[*row][col] == *player_token { count + 1 } else { 0 };
+                    count = if self.0[*row][col] == *player_token { count + 1 } else { 0 };
                     if count >= 4 { return player_token.to_owned() }
                 }
                 pos_row.remove(0);
@@ -96,7 +86,7 @@ impl Board {
                 let mut count = 0;
                 for (mut row, col) in pos_col.iter().enumerate() {
                     if row >= 6 { row -= 1; };
-                    count = if self.body[row][*col] == *player_token { count + 1 } else { 0 };
+                    count = if self.0[row][*col] == *player_token { count + 1 } else { 0 };
                     if count >= 4 { return player_token.to_owned() }
                 }
                 pos_col.remove(0);
@@ -106,7 +96,7 @@ impl Board {
             while pos_col.len() > 3 {
                 let mut count = 0;
                 for (row, col) in pos_col.iter().enumerate() {
-                    count = if self.body[row][*col] == *player_token { count + 1 } else { 0 };
+                    count = if self.0[row][*col] == *player_token { count + 1 } else { 0 };
                     if count >= 4 { return player_token.to_owned() }
                 }
                 pos_col.remove(0);
@@ -116,7 +106,7 @@ impl Board {
             while pos_col.len() > 3 {
                 let mut count = 0;
                 for (row, col) in pos_col.iter().enumerate() {
-                    count = if self.body[row+tmp][*col] == *player_token { count + 1 } else { 0 };
+                    count = if self.0[row+tmp][*col] == *player_token { count + 1 } else { 0 };
                     if count >= 4 { return player_token.to_owned() }
                 }
                 pos_col.pop();
@@ -129,11 +119,11 @@ impl Board {
         // check if the column number is valid
         if !(0..7).contains(&col) { return None; }
         // check if the column is not full
-        if self.body[0][col] != Token::Empty { return Some(false); }
+        if self.0[0][col] != Token::Empty { return Some(false); }
         // browse the column from bottom to top until you find an empty cell to be able to place the player's token there
-        for i in 1..=self.body.len() {
-            if self.body[self.body.len() - i][col] == Token::Empty {
-                self.body[self.body.len() - i][col] = token;
+        for i in 1..=self.0.len() {
+            if self.0[self.0.len() - i][col] == Token::Empty {
+                self.0[self.0.len() - i][col] = token;
                 return Some(true);
             }
         }
