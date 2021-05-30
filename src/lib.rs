@@ -43,66 +43,40 @@ mod board {
 			}
 			true
 		}
+		fn check_cell(&self, x: usize, y: usize, token: &Token) -> bool {
+			match self.0.get(x) {
+				None => false,
+				Some(row) => {
+					match row.get(y) {
+						None => false,
+						Some(cell) => {
+							token == cell
+						},
+					}
+				}
+			}
+		}
+		fn check_winner_recursively(&self, x: usize, y: usize, token: &Token, mut count: u8) -> bool{
+			count = if self.check_cell(x, y, token) { count - 1 } else { 4 };
+			if count == 0 { return true; }
+
+			if x < 6 && y < 7 && self.check_winner_recursively(x+1, y+1, token, count) {
+				return true;
+			}
+			if x < 6 && y < 7 && self.check_winner_recursively(x+1, y, token, count){
+				return true;
+			}
+			if x < 6 && y < 7 && self.check_winner_recursively(x, y+1, token, count){
+				return true;
+			}
+			return false;
+		}
 		pub fn check_winner(&self) -> Token {
-			// Verification for each player
-			for player_token in [Token::Red, Token::Yellow].iter() {
-				// Check horizontally
-				for row in self.0.iter() {
-					let mut count: u8 = 0;
-					for cell in row {
-						count = if cell == player_token { count + 1 } else { 0 };
-						if count >= 4 { return player_token.to_owned() }
-					}
-				}
-				// Check vertically
-				for i in 0..self.0[0].len() {
-					let mut count: u8 = 0;
-					for j in 0..self.0.len() {
-						count = if self.0[j][i] == *player_token { count + 1 } else { 0 };
-						if count >= 4{ return player_token.to_owned() }
-					}
-				}
-				// check the diagonal that starts on the left and ends on the right
-				let mut pos_row: Vec<usize> = Vec::from([1,2,3,4,5]);
-				while pos_row.len() > 3 {
-					let mut count = 0;
-					for (col, row) in pos_row.iter().enumerate() {
-						count = if self.0[*row][col] == *player_token { count + 1 } else { 0 };
-						if count >= 4 { return player_token.to_owned() }
-					}
-					pos_row.remove(0);
-				}
-				let mut pos_col: Vec<usize> = Vec::from([0,1,2,3,4,5,6]);
-				while pos_col.len() > 3 {
-					let mut count = 0;
-					for (mut row, col) in pos_col.iter().enumerate() {
-						if row >= 6 { row -= 1; };
-						count = if self.0[row][*col] == *player_token { count + 1 } else { 0 };
-						if count >= 4 { return player_token.to_owned() }
-					}
-					pos_col.remove(0);
-				}
-				// check the diagonal which starts on the right and ends on the left
-				pos_col = Vec::from([5,4,3,2,1,0]);
-				while pos_col.len() > 3 {
-					let mut count = 0;
-					for (row, col) in pos_col.iter().enumerate() {
-						count = if self.0[row][*col] == *player_token { count + 1 } else { 0 };
-						if count >= 4 { return player_token.to_owned() }
-					}
-					pos_col.remove(0);
-				}
-				pos_col = Vec::from([6,5,4,3,2,1]);
-				let mut tmp = 0;
-				while pos_col.len() > 3 {
-					let mut count = 0;
-					for (row, col) in pos_col.iter().enumerate() {
-						count = if self.0[row+tmp][*col] == *player_token { count + 1 } else { 0 };
-						if count >= 4 { return player_token.to_owned() }
-					}
-					pos_col.pop();
-					tmp += 1;
-				}
+			if self.check_winner_recursively(0, 0, &Token::Red, 4){
+				return Token::Red;
+			}
+			else if self.check_winner_recursively(0, 0, &Token::Yellow, 4){
+				return Token::Yellow;
 			}
 			Token::Empty
 		}
