@@ -1,7 +1,7 @@
 mod board {
 	use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
 
-	#[derive(Clone, Copy, PartialEq)]
+	#[derive(Clone, Copy, PartialEq, Debug)]
 	pub enum Token { Red, Yellow, Empty }
 
 	pub struct Board([[Token; 7]; 6]);
@@ -93,6 +93,69 @@ mod board {
 				}
 			}
 			None
+		}
+	}
+
+	#[cfg(test)]
+	mod tests{
+		use super::{Board, Token::*};
+
+		#[test]
+		fn empty_board_is_full(){
+			assert!(!Board::new().is_full())
+		}
+		#[test]
+		fn full_board_is_full(){
+			let board = Board([[Red;7]; 6]);
+			assert!(board.is_full())
+		}
+		#[test]
+		fn check_row_winner(){
+			let board = Board([
+				[Empty;7],
+				[Empty;7],
+				[Empty;7],
+				[Empty,Empty,Red,Red,Red,Red,Empty],
+				[Empty;7],
+				[Empty;7],
+			]);
+			assert_eq!(board.check_winner(), Red);
+		}
+		#[test]
+		fn check_column_winner(){
+			let board = Board([
+				[Empty;7],
+				[Empty,Empty,Red,Empty,Empty,Empty,Empty],
+				[Empty,Empty,Red,Empty,Empty,Empty,Empty],
+				[Empty,Empty,Red,Empty,Empty,Empty,Empty],
+				[Empty,Empty,Red,Empty,Empty,Empty,Empty],
+				[Empty;7],
+			]);
+			assert_eq!(board.check_winner(), Red);
+		}
+		#[test]
+		fn check_diagonal(){
+			let board = Board([
+				[Empty;7],
+				[Empty;7],
+				[Red,Empty,Empty,Empty,Empty,Empty,Empty],
+				[Empty,Red,Empty,Empty,Empty,Empty,Empty],
+				[Empty,Empty,Red,Empty,Empty,Empty,Empty],
+				[Empty,Empty,Empty,Red,Empty,Empty,Empty],
+			]);
+			assert_eq!(board.check_winner(), Red);
+		}
+		#[test]
+		fn check_diagonal_bis(){
+			let board = Board([
+				[Empty;7],
+				[Empty;7],
+				[Empty,Empty,Empty,Empty,Empty,Yellow,Empty],
+				[Empty,Empty,Empty,Empty,Yellow,Empty,Empty],
+				[Empty,Empty,Empty,Yellow,Empty,Empty,Empty],
+				[Empty,Empty,Yellow,Empty,Empty,Empty,Empty],
+			]);
+			assert_eq!(board.check_winner(), Yellow);
 		}
 	}
 }
