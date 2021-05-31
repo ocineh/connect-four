@@ -122,6 +122,18 @@ mod board {
 			assert_eq!(board.check_winner(), Red);
 		}
 		#[test]
+		fn check_row_winner_bis(){
+			let board = Board([
+				[Empty;7],
+				[Empty;7],
+				[Empty;7],
+				[Empty,Empty,Empty,Red,Red,Red,Red],
+				[Empty;7],
+				[Empty;7],
+			]);
+			assert_eq!(board.check_winner(), Red);
+		}
+		#[test]
 		fn check_column_winner(){
 			let board = Board([
 				[Empty;7],
@@ -134,7 +146,7 @@ mod board {
 			assert_eq!(board.check_winner(), Red);
 		}
 		#[test]
-		fn check_diagonal(){
+		fn check_diagonal_left_right_0(){
 			let board = Board([
 				[Empty;7],
 				[Empty;7],
@@ -146,16 +158,64 @@ mod board {
 			assert_eq!(board.check_winner(), Red);
 		}
 		#[test]
-		fn check_diagonal_bis(){
+		fn check_diagonal_left_right_1(){
 			let board = Board([
 				[Empty;7],
-				[Empty;7],
-				[Empty,Empty,Empty,Empty,Empty,Yellow,Empty],
-				[Empty,Empty,Empty,Empty,Yellow,Empty,Empty],
+				[Empty,Empty,Red,Empty,Empty,Empty,Empty],
+				[Empty,Empty,Empty,Red,Empty,Empty,Empty],
+				[Empty,Empty,Empty,Empty,Red,Empty,Empty],
+				[Empty,Empty,Empty,Empty,Empty,Red,Empty],
+				[Empty; 7],
+			]);
+			assert_eq!(board.check_winner(), Red);
+		}
+		#[test]
+		fn check_diagonal_left_right_2(){
+			let board = Board([
+				[Empty,Empty,Empty,Red,Empty,Empty,Empty],
+				[Empty,Empty,Empty,Empty,Red,Empty,Empty],
+				[Empty,Empty,Empty,Empty,Empty,Red,Empty],
+				[Empty,Empty,Empty,Empty,Empty,Empty,Red],
+				[Empty; 7],
+				[Empty; 7],
+			]);
+			assert_eq!(board.check_winner(), Red);
+		}
+		#[test]
+		fn check_diagonal_right_left_0(){
+			let board = Board([
+				[Empty; 7],
+				[Empty; 7],
+				[Empty,Empty,Empty,Empty,Empty,Red,Empty],
+				[Empty,Empty,Empty,Empty,Red,Empty,Empty],
+				[Empty,Empty,Empty,Red,Empty,Empty,Empty],
+				[Empty,Empty,Red,Empty,Empty,Empty,Empty],
+			]);
+			assert_eq!(board.check_winner(), Red);
+		}
+		#[test]
+		fn check_diagonal_right_left_1(){
+			let board = Board([
 				[Empty,Empty,Empty,Yellow,Empty,Empty,Empty],
 				[Empty,Empty,Yellow,Empty,Empty,Empty,Empty],
+				[Empty,Yellow,Empty,Empty,Empty,Empty,Empty],
+				[Yellow,Empty,Empty,Empty,Empty,Empty,Empty],
+				[Empty; 7],
+				[Empty; 7],
 			]);
 			assert_eq!(board.check_winner(), Yellow);
+		}
+		#[test]
+		fn check_diagonal_right_left_2(){
+			let board = Board([
+				[Empty,Empty,Empty,Empty,Empty,Empty,Red],
+				[Empty,Empty,Empty,Empty,Empty,Red,Empty],
+				[Empty,Empty,Empty,Empty,Red,Empty,Empty],
+				[Empty,Empty,Empty,Red,Empty,Empty,Empty],
+				[Empty; 7],
+				[Empty; 7],
+			]);
+			assert_eq!(board.check_winner(), Red);
 		}
 	}
 }
