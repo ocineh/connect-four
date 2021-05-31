@@ -56,26 +56,88 @@ mod board {
 				}
 			}
 		}
-		fn check_winner_recursively(&self, x: usize, y: usize, token: &Token, mut count: u8) -> bool{
-			count = if self.check_cell(x, y, token) { count - 1 } else { 4 };
-			if count == 0 { return true; }
+		fn check_row(&self, token: &Token) -> bool{
+			let mut count = 4;
+			for x in 0..6 {
+				for y in 0..7 {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+				}
+			}
+			false
+		}
+		fn check_column(&self, token: &Token) -> bool{
+			let mut count = 4;
+			for y in 0..7 {
+				for x in 0..6 {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+				}
+			}
+			false
+		}
+		fn check_diagonal(&self, token: &Token) -> bool{
+			// LEFT => RIGHT
+			for row in 0..3{
+				let mut count = 4;
+				let mut x = row;
+				for y in 0..7 {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+					x += 1;
+				}
+			}
 
-			if x < 6 && y < 7 && self.check_winner_recursively(x+1, y+1, token, count) {
-				return true;
+			for col in 1..4 {
+				let mut count = 4;
+				let mut y = col;
+				for x in 0..6 {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+					y += 1;
+				}
 			}
-			if x < 6 && y < 7 && self.check_winner_recursively(x+1, y, token, count){
-				return true;
+
+			// RIGHT => LEFT
+			for row in 0..3{
+				let mut count = 4;
+				let mut x = row;
+				for y in (1..7).rev() {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+					x += 1;
+				}
 			}
-			if x < 6 && y < 7 && self.check_winner_recursively(x, y+1, token, count){
-				return true;
+
+			for col in 3..6{
+				let mut count = 4;
+				let mut y = col;
+				for x in 0..6 {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+					if y == 0 { break }
+					y -= 1;
+				}
 			}
-			return false;
+			false
 		}
 		pub fn check_winner(&self) -> Token {
-			if self.check_winner_recursively(0, 0, &Token::Red, 4){
+			if self.check_row(&Token::Red) || self.check_column(&Token::Red) || self.check_diagonal(&Token::Red) || self.check_diagonal(&Token::Red){
 				return Token::Red;
 			}
-			else if self.check_winner_recursively(0, 0, &Token::Yellow, 4){
+			else if self.check_row(&Token::Yellow) || self.check_column(&Token::Yellow) || self.check_diagonal(&Token::Yellow) || self.check_diagonal(&Token::Yellow){
 				return Token::Yellow;
 			}
 			Token::Empty
