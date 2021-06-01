@@ -293,6 +293,7 @@ mod board {
 		}
 	}
 }
+
 pub mod game {
 	use std::io;
 
@@ -414,5 +415,70 @@ pub mod game {
 		board.display();
 
 		winner_message(&board);
+	}
+}
+
+pub mod random{
+	use super::board::{Token, Board};
+	use rand::{seq::SliceRandom, thread_rng, Rng};
+	use std::sync::mpsc::Sender;
+	use std::time::Instant;
+
+	// Start a round between two fictitious players who play random moves
+	pub fn round(rand_first_player: bool) -> Token {
+		let mut board = Board::new();
+		// the pos_list vector contains the column numbers which are each present the number of times we can enter a token in said column
+		let mut pos_list: Vec<usize> = Vec::from([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5]);
+		// randomly choose the first player or not
+		let mut current_player = if rand_first_player { [Token::Red, Token::Yellow].choose(&mut thread_rng()).unwrap().to_owned() } else { Token::Red };
+
+		while !pos_list.is_empty() && !board.is_full() && !(board.check_winner() != Token::Empty) {
+			// Randomly choose an element from pos_list and remove it while using it as a parameter of player_stroke
+			board.player_stroke(current_player, pos_list.remove(thread_rng().gen_range(0..pos_list.len())));
+			current_player = if current_player == Token::Red { Token::Yellow } else { Token::Red };
+		}
+		// returns the winner of the game
+		board.check_winner()
+	}
+
+	// Launches a number of rounds between two fictitious players who play random moves
+	fn rounds(number_rounds: u64, tx: Sender<[(Token, u64); 3]>, rand_first_player: bool) {
+		let mut res: [(Token, u64); 3] = [(Token::Red, 0), (Token::Yellow, 0), (Token::Empty, 0)];
+		for _i in 0..number_rounds {
+			match round(rand_first_player) {
+				Token::Red => res[0].1 += 1,
+				Token::Yellow => res[1].1 += 1,
+				Token::Empty => res[2].1 += 1,
+			};
+		}
+		tx.send(res).unwrap();
+	}
+
+	// Throws threads that will throw a certain number of rounds
+	pub fn game_session(number_thread: u32, number_rounds: u64, rand_first_player: bool)  -> [(Token, u64); 3] {
+		let total_rounds = number_rounds * number_thread as u64;
+		let mut res: [(Token, u64); 3] = [(Token::Red, 0), (Token::Yellow, 0), (Token::Empty, 0)];
+
+		let now = Instant::now();
+
+		let mut children = vec![];
+		let (tx, rx) = std::sync::mpsc::channel();
+		for _i in 0..number_thread {
+			let tx_copy = std::sync::mpsc::Sender::clone(&tx);
+			children.push(std::thread::spawn(move || rounds(number_rounds, tx_copy, rand_first_player)));
+		}
+		std::mem::drop(tx);
+		for tmp in rx{
+			res[0].1 += tmp[0].1;
+			res[1].1 += tmp[1].1;
+			res[2].1 += tmp[2].1;
+		}
+		let exec_time = now.elapsed().as_millis();
+		println!("finished after {} milliseconds or {:.2} seconds or {:.2} minutes.", exec_time, exec_time as f64/1000.0, exec_time as f64/1000.0/60.0);
+		println!("\nresult of {} game : ", total_rounds);
+		println!("\t{:.3}% victory for the red token.", (res[0].1 as f64)*100.0/(total_rounds as f64));
+		println!("\t{:.3}% victory for the yellow token.", (res[1].1 as f64)*100.0/(total_rounds as f64));
+		println!("\t{:.3}% draw.", (res[2].1 as f64)*100.0/(total_rounds as f64));
+		res
 	}
 }
