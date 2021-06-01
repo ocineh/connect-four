@@ -291,6 +291,18 @@ mod board {
 			]);
 			assert_eq!(board.check_winner(), Red);
 		}
+		#[test]
+		fn check_player_stroke(){
+			let mut board = Board::new();
+			for col in 0..7 {
+				for row in (0..6).rev() {
+					assert_eq!(board.player_stroke(Red,col), Some(true));
+					assert!(board.check_cell(row,col, &Red));
+				}
+			}
+			assert_eq!(board.player_stroke(Red,0), Some(false));
+			assert_eq!(board.player_stroke(Red,5), Some(false));
+		}
 	}
 }
 
