@@ -16,66 +16,102 @@ pub mod board{
 			}
 			true
 		}
+		fn check_cell(&self, x: usize, y: usize, token: &Token) -> bool {
+			match self.0.get(x) {
+				None => false,
+				Some(row) => {
+					match row.get(y) {
+						None => false,
+						Some(cell) => {
+							token == cell
+						},
+					}
+				}
+			}
+		}
+		fn check_row(&self, token: &Token) -> bool{
+			let mut count = 4;
+			for x in 0..6 {
+				for y in 0..7 {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+				}
+			}
+			false
+		}
+		fn check_column(&self, token: &Token) -> bool{
+			let mut count = 4;
+			for y in 0..7 {
+				for x in 0..6 {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+				}
+			}
+			false
+		}
+		fn check_diagonal(&self, token: &Token) -> bool{
+			// LEFT => RIGHT
+			for row in 0..3{
+				let mut count = 4;
+				let mut x = row;
+				for y in 0..7 {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+					x += 1;
+				}
+			}
+
+			for col in 1..4 {
+				let mut count = 4;
+				let mut y = col;
+				for x in 0..6 {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+					y += 1;
+				}
+			}
+
+			// RIGHT => LEFT
+			for row in 0..3{
+				let mut count = 4;
+				let mut x = row;
+				for y in (1..7).rev() {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+					x += 1;
+				}
+			}
+
+			for col in 3..6{
+				let mut count = 4;
+				let mut y = col;
+				for x in 0..6 {
+					count = if self.check_cell(x,y,token){ count - 1 } else { 4 };
+					if count == 0 {
+						return true;
+					}
+					if y == 0 { break }
+					y -= 1;
+				}
+			}
+			false
+		}
 		pub fn check_winner(&self) -> Token {
-			// Verification for each player
-			for player_token in [Token::Red, Token::Yellow].iter() {
-				// Check horizontally
-				for row in self.0.iter() {
-					let mut count: u8 = 0;
-					for cell in row {
-						count = if cell == player_token { count + 1 } else { 0 };
-						if count >= 4 { return player_token.to_owned() }
-					}
-				}
-				// Check vertically
-				for i in 0..self.0[0].len() {
-					let mut count: u8 = 0;
-					for j in 0..self.0.len() {
-						count = if self.0[j][i] == *player_token { count + 1 } else { 0 };
-						if count >= 4{ return player_token.to_owned() }
-					}
-				}
-				// check the diagonal that starts on the left and ends on the right
-				let mut pos_row: Vec<usize> = Vec::from([1,2,3,4,5]);
-				while pos_row.len() > 3 {
-					let mut count = 0;
-					for (col, row) in pos_row.iter().enumerate() {
-						count = if self.0[*row][col] == *player_token { count + 1 } else { 0 };
-						if count >= 4 { return player_token.to_owned() }
-					}
-					pos_row.remove(0);
-				}
-				let mut pos_col: Vec<usize> = Vec::from([0,1,2,3,4,5,6]);
-				while pos_col.len() > 3 {
-					let mut count = 0;
-					for (mut row, col) in pos_col.iter().enumerate() {
-						if row >= 6 { row -= 1; };
-						count = if self.0[row][*col] == *player_token { count + 1 } else { 0 };
-						if count >= 4 { return player_token.to_owned() }
-					}
-					pos_col.remove(0);
-				}
-				// check the diagonal which starts on the right and ends on the left
-				pos_col = Vec::from([5,4,3,2,1,0]);
-				while pos_col.len() > 3 {
-					let mut count = 0;
-					for (row, col) in pos_col.iter().enumerate() {
-						count = if self.0[row][*col] == *player_token { count + 1 } else { 0 };
-						if count >= 4 { return player_token.to_owned() }
-					}
-					pos_col.remove(0);
-				}
-				pos_col = Vec::from([6,5,4,3,2,1]);
-				let mut tmp = 0;
-				while pos_col.len() > 3 {
-					let mut count = 0;
-					for (row, col) in pos_col.iter().enumerate() {
-						count = if self.0[row+tmp][*col] == *player_token { count + 1 } else { 0 };
-						if count >= 4 { return player_token.to_owned() }
-					}
-					pos_col.pop();
-					tmp += 1;
-				}
+			if self.check_row(&Token::Red) || self.check_column(&Token::Red) || self.check_diagonal(&Token::Red) || self.check_diagonal(&Token::Red){
+				return Token::Red;
+			}
+			else if self.check_row(&Token::Yellow) || self.check_column(&Token::Yellow) || self.check_diagonal(&Token::Yellow) || self.check_diagonal(&Token::Yellow){
+				return Token::Yellow;
 			}
 			Token::Empty
 		}
