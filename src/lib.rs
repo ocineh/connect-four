@@ -1,9 +1,11 @@
 mod board {
 	use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
+	use std::convert::TryInto;
 
 	#[derive(Clone, Copy, PartialEq, Debug)]
 	pub enum Token { Red, Yellow, Empty }
 
+	#[derive(Debug)]
 	pub struct Board([[Token; 7]; 6]);
 
 	impl Board {
@@ -142,15 +144,19 @@ mod board {
 			}
 			Token::Empty
 		}
-		pub fn player_stroke(&mut self, token: Token, col: usize) -> Option<bool> {
+		pub fn player_stroke(&mut self, token: Token, col: i8) -> Option<bool> {
+			let col: usize = match col.try_into(){
+				Ok(n) => n,
+				Err(_) => return None,
+			};
 			// check if the column number is valid
 			if !(0..7).contains(&col) { return None; }
 			// check if the column is not full
-			if self.0[0][col] != Token::Empty { return Some(false); }
+			if !self.check_cell(0,col,&Token::Empty) { return Some(false); }
 			// browse the column from bottom to top until you find an empty cell to be able to place the player's token there
-			for i in 1..=self.0.len() {
-				if self.0[self.0.len() - i][col] == Token::Empty {
-					self.0[self.0.len() - i][col] = token;
+			for row in (0..6).rev() {
+				if self.check_cell(row,col,&Token::Empty) {
+					self.0[row][col] = token;
 					return Some(true);
 				}
 			}
@@ -296,7 +302,7 @@ mod board {
 			let mut board = Board::new();
 			for col in 0..7 {
 				for row in (0..6).rev() {
-					assert_eq!(board.player_stroke(Red,col), Some(true));
+					assert_eq!(board.player_stroke(Red,col as i8), Some(true));
 					assert!(board.check_cell(row,col, &Red));
 				}
 			}
@@ -317,6 +323,7 @@ pub mod game {
 	use rand::{Rng, thread_rng};
 
 	use super::board::{Board, Token};
+	use std::io::Write;
 
 	fn winner_message(board: &Board){
 		match board.check_winner() {
@@ -334,10 +341,11 @@ pub mod game {
 			board.display();
 
 			match current_player {
-				Token::Red => eprint!("The player with the {}red token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
-				Token::Yellow => eprint!("The player with the {}yellow token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
+				Token::Red => print!("The player with the {}red token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
+				Token::Yellow => print!("The player with the {}yellow token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
 				Token::Empty => {}
 			};
+			std::io::stdout().flush().unwrap();
 
 			let mut col = String::new();
 			// Retrieves the column number entered by the user
@@ -346,29 +354,15 @@ pub mod game {
 				.expect("Error reading user input.");
 
 			// converted col from String to usize by handling errors related to input of something other than a number
-			let col: usize = match col.trim().parse() {
+			let col: i8 = match col.trim().parse() {
 				Ok(num) => num,
-				Err(_) => {
-					println!("Please enter a column number between 1 and 7.");
-					continue;
-				}
+				Err(_) => continue,
 			};
 
 			// try to place the token in the column selected by the user and deal with the potential problem
-			match board.player_stroke(current_player, col - 1) {
-				None => {
-					println!("Please enter a column number between 1 and 7.");
-					continue;
-				}
-				Some(t) => {
-					match t {
-						false => {
-							println!("The column is full.");
-							continue;
-						}
-						true => {}
-					}
-				}
+			match board.player_stroke(current_player,col - 1) {
+				None => continue,
+				Some(t) => if !t { continue }
 			}
 
 			current_player = if current_player == Token::Red { Token::Yellow } else { Token::Red };
@@ -381,46 +375,40 @@ pub mod game {
 	}
 	pub fn against_computer() {
 		let mut board = Board::new();
-		let mut pos_list: Vec<usize> = Vec::from([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5]);
+		let mut pos_list: Vec<usize> = Vec::from([0,0,0,0,0,0,0,1,1,1,1,1,1,1,2,2,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4,4,4,4,5,5,5,5,5,5,5,6,6,6,6,6,6,6]);
 
 		while !board.is_full() && !(board.check_winner() != Token::Empty) {
 			println!("{}{}Current game.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
 			board.display();
 
-			eprint!("The player with the {}red token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor);
+			print!("The player with the {}red token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor);
+			std::io::stdout().flush().unwrap();
+
 			let mut col = String::new();
 			// Retrieves the column number entered by the user
 			io::stdin()
 				.read_line(&mut col)
 				.expect("Error reading user input.");
 			// converted col from String to usize by handling errors related to input of something other than a number
-			let col: usize = match col.trim().parse() {
+			let col: i8 = match col.trim().parse() {
 				Ok(num) => num,
-				Err(_) => {
-					println!("Please enter a column number between 1 and 7.");
-					continue;
-				}
+				Err(_) => continue,
 			};
 
 			// try to place the token in the column selected by the user and deal with the potential problem
-			match board.player_stroke(Token::Red, col - 1) {
-				None => {
-					println!("Please enter a column number between 1 and 7.");
-					continue;
-				}
+			match board.player_stroke(Token::Red,col - 1) {
+				None => continue,
 				Some(t) => {
 					match t {
-						false => {
-							println!("The column is full.");
-							continue;
-						}
+						false => continue,
 						true => {
-							pos_list.remove(pos_list.iter().enumerate().find(|&r| (r.1) == &(col-1)).unwrap().0);
+							let index = pos_list.iter().position(|pos| *pos == (col-1) as usize).unwrap();
+							pos_list.remove(index);
 						}
 					}
 				}
 			}
-			board.player_stroke(Token::Yellow, pos_list.remove(thread_rng().gen_range(0..pos_list.len())));
+			board.player_stroke(Token::Yellow, pos_list.remove(thread_rng().gen_range(0..pos_list.len())) as i8);
 		}
 
 		println!("{}{}Party to finish.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
@@ -440,13 +428,13 @@ pub mod random{
 	pub fn round(rand_first_player: bool) -> Token {
 		let mut board = Board::new();
 		// the pos_list vector contains the column numbers which are each present the number of times we can enter a token in said column
-		let mut pos_list: Vec<usize> = Vec::from([0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5]);
+		let mut pos_list: Vec<usize> = Vec::from([0,0,0,0,0,0,0,1,1,1,1,1,1,1,2,2,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4,4,4,4,5,5,5,5,5,5,5,6,6,6,6,6,6,6]);
 		// randomly choose the first player or not
 		let mut current_player = if rand_first_player { [Token::Red, Token::Yellow].choose(&mut thread_rng()).unwrap().to_owned() } else { Token::Red };
 
 		while !pos_list.is_empty() && !board.is_full() && !(board.check_winner() != Token::Empty) {
 			// Randomly choose an element from pos_list and remove it while using it as a parameter of player_stroke
-			board.player_stroke(current_player, pos_list.remove(thread_rng().gen_range(0..pos_list.len())));
+			board.player_stroke(current_player, pos_list.remove(thread_rng().gen_range(0..pos_list.len())) as i8);
 			current_player = if current_player == Token::Red { Token::Yellow } else { Token::Red };
 		}
 		// returns the winner of the game
