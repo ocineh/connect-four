@@ -332,6 +332,21 @@ pub mod game {
 			Token::Empty => println!("The game ended in a draw."),
 		};
 	}
+	fn ask_column(current_player: &Token) -> Result<i8, std::num::ParseIntError> {
+		match current_player {
+			Token::Red => print!("The player with the {}red token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
+			Token::Yellow => print!("The player with the {}yellow token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
+			Token::Empty => {}
+		};
+		std::io::stdout().flush().unwrap();
+
+		let mut col = String::new();
+		io::stdin()
+			.read_line(&mut col)
+			.expect("Error reading user input.");
+
+		col.trim().parse::<i8>()
+	}
 	pub fn against_another_player() {
 		let mut board = Board::new();
 		let mut current_player = Token::Red;
@@ -340,21 +355,7 @@ pub mod game {
 			println!("{}{}Current game.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
 			board.display();
 
-			match current_player {
-				Token::Red => print!("The player with the {}red token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor),
-				Token::Yellow => print!("The player with the {}yellow token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 255, b: 50 }), ResetColor),
-				Token::Empty => {}
-			};
-			std::io::stdout().flush().unwrap();
-
-			let mut col = String::new();
-			// Retrieves the column number entered by the user
-			io::stdin()
-				.read_line(&mut col)
-				.expect("Error reading user input.");
-
-			// converted col from String to usize by handling errors related to input of something other than a number
-			let col: i8 = match col.trim().parse() {
+			let col: i8 = match ask_column(&current_player) {
 				Ok(num) => num,
 				Err(_) => continue,
 			};
@@ -381,16 +382,7 @@ pub mod game {
 			println!("{}{}Current game.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
 			board.display();
 
-			print!("The player with the {}red token{} must choose a column number : ", SetForegroundColor(Color::Rgb { r: 255, g: 0, b: 0 }), ResetColor);
-			std::io::stdout().flush().unwrap();
-
-			let mut col = String::new();
-			// Retrieves the column number entered by the user
-			io::stdin()
-				.read_line(&mut col)
-				.expect("Error reading user input.");
-			// converted col from String to usize by handling errors related to input of something other than a number
-			let col: i8 = match col.trim().parse() {
+			let col: i8 = match ask_column(&Token::Red) {
 				Ok(num) => num,
 				Err(_) => continue,
 			};
