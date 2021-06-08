@@ -1,16 +1,17 @@
 mod board {
 	use crossterm::style::{Color, ResetColor, SetBackgroundColor, SetForegroundColor};
 	use std::convert::TryInto;
+	use rand::{Rng,thread_rng};
 
 	#[derive(Clone, Copy, PartialEq, Debug)]
 	pub enum Token { Red, Yellow, Empty }
 
 	#[derive(Debug)]
-	pub struct Board([[Token; 7]; 6]);
+	pub struct Board([[Token; 7]; 6], Vec<i8>);
 
 	impl Board {
 		pub fn new() -> Board {
-			Board([[Token::Empty; 7]; 6])
+			Board([[Token::Empty; 7]; 6], vec![0,0,0,0,0,0,1,1,1,1,1,1,2,2,2,2,2,2,3,3,3,3,3,3,4,4,4,4,4,4,5,5,5,5,5,5,6,6,6,6,6,6])
 		}
 		pub fn display(&self) {
 			let separation_color = Color::Rgb { r: 0, g: 100, b: 255 };
@@ -145,22 +146,28 @@ mod board {
 			Token::Empty
 		}
 		pub fn player_stroke(&mut self, token: Token, col: i8) -> Option<bool> {
-			let col: usize = match col.try_into(){
-				Ok(n) => n,
-				Err(_) => return None,
-			};
-			// check if the column number is valid
-			if !(0..7).contains(&col) { return None; }
-			// check if the column is not full
-			if !self.check_cell(0,col,&Token::Empty) { return Some(false); }
-			// browse the column from bottom to top until you find an empty cell to be able to place the player's token there
-			for row in (0..6).rev() {
-				if self.check_cell(row,col,&Token::Empty) {
-					self.0[row][col] = token;
-					return Some(true);
-				}
+			match col.try_into() {
+				Ok(col) if col < 7 => {
+					if !self.check_cell(0,col,&Token::Empty) { Some(false) }
+					else {
+						for row in (0..6).rev() {
+							if self.check_cell(row,col,&Token::Empty) {
+								self.0[row][col] = token;
+								self.1.remove(self.1.iter().position(|&c| c == col as i8).unwrap());
+								return Some(true);
+							}
+						}
+						None
+					}
+				},
+				_ => None,
 			}
-			None
+		}
+		pub fn random_stroke(&mut self, token: Token) -> Option<bool> {
+			match self.1.get(thread_rng().gen_range(0..self.1.len()) as usize) {
+				None => None,
+				Some(&col) => self.player_stroke(token, col)
+			}
 		}
 	}
 
@@ -174,7 +181,7 @@ mod board {
 		}
 		#[test]
 		fn full_board_is_full(){
-			let board = Board([[Red;7]; 6]);
+			let board = Board([[Red;7]; 6], Vec::new());
 			assert!(board.is_full())
 		}
 		#[test]
@@ -186,7 +193,7 @@ mod board {
 				[Empty,Empty,Red,Red,Red,Red,Empty],
 				[Empty;7],
 				[Empty;7],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Red);
 			let board = Board([
 				[Empty;7],
@@ -195,7 +202,7 @@ mod board {
 				[Empty;7],
 				[Empty,Empty,Empty,Red,Red,Red,Red],
 				[Empty;7],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Red);
 			let board = Board([
 				[Empty;7],
@@ -204,7 +211,7 @@ mod board {
 				[Empty;7],
 				[Empty;7],
 				[Empty;7],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Red);
 		}
 		#[test]
@@ -216,7 +223,7 @@ mod board {
 				[Empty,Empty,Red,Empty,Empty,Empty,Empty],
 				[Empty,Empty,Red,Empty,Empty,Empty,Empty],
 				[Empty;7],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Red);
 			let board = Board([
 				[Empty,Empty,Empty,Empty,Empty,Empty,Red],
@@ -225,7 +232,7 @@ mod board {
 				[Empty,Empty,Empty,Empty,Empty,Empty,Red],
 				[Empty;7],
 				[Empty;7],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Red);
 			let board = Board([
 				[Empty;7],
@@ -234,7 +241,7 @@ mod board {
 				[Empty,Empty,Empty,Empty,Yellow,Empty,Empty],
 				[Empty,Empty,Empty,Empty,Yellow,Empty,Empty],
 				[Empty,Empty,Empty,Empty,Yellow,Empty,Empty],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Yellow);
 		}
 		#[test]
@@ -246,7 +253,7 @@ mod board {
 				[Empty,Red,Empty,Empty,Empty,Empty,Empty],
 				[Empty,Empty,Red,Empty,Empty,Empty,Empty],
 				[Empty,Empty,Empty,Red,Empty,Empty,Empty],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Red);
 			let board = Board([
 				[Empty;7],
@@ -255,7 +262,7 @@ mod board {
 				[Empty,Empty,Empty,Empty,Yellow,Empty,Empty],
 				[Empty,Empty,Empty,Empty,Empty,Yellow,Empty],
 				[Empty; 7],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Yellow);
 			let board = Board([
 				[Empty,Empty,Empty,Red,Empty,Empty,Empty],
@@ -264,7 +271,7 @@ mod board {
 				[Empty,Empty,Empty,Empty,Empty,Empty,Red],
 				[Empty; 7],
 				[Empty; 7],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Red);
 		}
 		#[test]
@@ -276,7 +283,7 @@ mod board {
 				[Empty,Empty,Empty,Empty,Red,Empty,Empty],
 				[Empty,Empty,Empty,Red,Empty,Empty,Empty],
 				[Empty,Empty,Red,Empty,Empty,Empty,Empty],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Red);
 			let board = Board([
 				[Empty,Empty,Empty,Yellow,Empty,Empty,Empty],
@@ -285,7 +292,7 @@ mod board {
 				[Yellow,Empty,Empty,Empty,Empty,Empty,Empty],
 				[Empty; 7],
 				[Empty; 7],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Yellow);
 			let board = Board([
 				[Empty,Empty,Empty,Empty,Empty,Empty,Red],
@@ -294,7 +301,7 @@ mod board {
 				[Empty,Empty,Empty,Red,Empty,Empty,Empty],
 				[Empty; 7],
 				[Empty; 7],
-			]);
+			], Vec::new());
 			assert_eq!(board.check_winner(), Red);
 		}
 		#[test]
@@ -320,7 +327,6 @@ pub mod game {
 		style::{Color, ResetColor, SetForegroundColor},
 		terminal::{Clear, ClearType}
 	};
-	use rand::{Rng, thread_rng};
 
 	use super::board::{Board, Token};
 	use std::io::Write;
@@ -371,12 +377,10 @@ pub mod game {
 
 		println!("{}{}Party to finish.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
 		board.display();
-
 		winner_message(&board);
 	}
 	pub fn against_computer() {
 		let mut board = Board::new();
-		let mut pos_list: Vec<usize> = Vec::from([0,0,0,0,0,0,0,1,1,1,1,1,1,1,2,2,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4,4,4,4,5,5,5,5,5,5,5,6,6,6,6,6,6,6]);
 
 		while !board.is_full() && !(board.check_winner() != Token::Empty) {
 			println!("{}{}Current game.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
@@ -387,25 +391,15 @@ pub mod game {
 				Err(_) => continue,
 			};
 
-			// try to place the token in the column selected by the user and deal with the potential problem
-			match board.player_stroke(Token::Red,col - 1) {
+			match board.player_stroke(Token::Red,col - 1){
 				None => continue,
-				Some(t) => {
-					match t {
-						false => continue,
-						true => {
-							let index = pos_list.iter().position(|pos| *pos == (col-1) as usize).unwrap();
-							pos_list.remove(index);
-						}
-					}
-				}
+				Some(t) => if !t { continue }
 			}
-			board.player_stroke(Token::Yellow, pos_list.remove(thread_rng().gen_range(0..pos_list.len())) as i8);
+			board.random_stroke(Token::Yellow);
 		}
 
 		println!("{}{}Party to finish.", Clear(ClearType::FromCursorUp), cursor::MoveTo(0,0));
 		board.display();
-
 		winner_message(&board);
 	}
 }
@@ -419,14 +413,11 @@ pub mod random{
 	// Start a round between two fictitious players who play random moves
 	pub fn round(rand_first_player: bool) -> Token {
 		let mut board = Board::new();
-		// the pos_list vector contains the column numbers which are each present the number of times we can enter a token in said column
-		let mut pos_list: Vec<usize> = Vec::from([0,0,0,0,0,0,0,1,1,1,1,1,1,1,2,2,2,2,2,2,2,3,3,3,3,3,3,3,4,4,4,4,4,4,4,5,5,5,5,5,5,5,6,6,6,6,6,6,6]);
 		// randomly choose the first player or not
 		let mut current_player = if rand_first_player { [Token::Red, Token::Yellow].choose(&mut thread_rng()).unwrap().to_owned() } else { Token::Red };
 
 		while !pos_list.is_empty() && !board.is_full() && !(board.check_winner() != Token::Empty) {
-			// Randomly choose an element from pos_list and remove it while using it as a parameter of player_stroke
-			board.player_stroke(current_player, pos_list.remove(thread_rng().gen_range(0..pos_list.len())) as i8);
+			board.random_stroke(current_player);
 			current_player = if current_player == Token::Red { Token::Yellow } else { Token::Red };
 		}
 		// returns the winner of the game
