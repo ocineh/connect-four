@@ -3,12 +3,12 @@
 ## What is it ?
 
 This is simply my version of connect four, <s>for the moment the only way to win is to line up 4
-tokens vertically or horizontally</s> you can win by lining up four tokens vertically, horizontally
-or diagonally.
+tokens vertically or horizontally</s> you can win by lining up 4 tokens in a row, column or
+diagonal.
 
-## Installation
+## Build
 
-It's a simple project done with rust you just need cargo to compile the program.
+You can build the project by running the following command:
 
 ```bash
 cargo build --release
@@ -16,10 +16,10 @@ cargo build --release
 
 ## Usage
 
-You can either compile it (see above) with cargo or directly launch it with cargo.
+You can run the game by running the following command:
 
 ```bash
-cargo run
+cargo run -- -h # to see the help
 ```
 
 ## Roadmap
