@@ -1,6 +1,6 @@
 use structopt::StructOpt;
 
-use lib::{game::*, random::*};
+use lib::*;
 
 mod lib;
 
